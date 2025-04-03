@@ -214,16 +214,17 @@ int main() {
                         double new_lane_check_speed = sqrt(new_lane_vx*new_lane_vx + new_lane_vy*new_lane_vy);
                         double new_lane_check_car_s = sensor_fusion[k][5];
 
-                      // Calculate the future location of the car in the lane we want to switch to
-                      new_lane_check_car_s += (double)prev_size * 0.02 * new_lane_check_speed;
-                      // If we encounter a future location of a car in the lane we want to switch to that is less than 40m away from the ego vehicle (within 20m in front of or behind), stay in the current lane
-                      // We do not need to calculate a new s for the ego vehicle since we are using Frenet coordinates, and so only the d value would change if we switched lanes
-                      // Return the target lane to the current lane, i.e., do not switch lanes
-                      if (std::abs(new_lane_check_car_s - car_s) < 20){
-                        lane = curr_lane;
-                        std::cout << "Can't switch lanes, decelerating instead..." << std::endl;
-                        // No need to continue checking cars since we know we cannot switch lanes
-                        break;
+                        // Calculate the future location of the car in the lane we want to switch to
+                        new_lane_check_car_s += (double)prev_size * 0.02 * new_lane_check_speed;
+                        // If we encounter a future location of a car in the lane we want to switch to that is less than 40m away from the ego vehicle (within 20m in front of or behind), stay in the current lane
+                        // We do not need to calculate a new s for the ego vehicle since we are using Frenet coordinates, and so only the d value would change if we switched lanes
+                        // Return the target lane to the current lane, i.e., do not switch lanes
+                        if (std::abs(new_lane_check_car_s - car_s) < 20){
+                          lane = curr_lane;
+                          std::cout << "Can't switch lanes, decelerating instead..." << std::endl;
+                          // No need to continue checking cars since we know we cannot switch lanes
+                          break;
+                        }
                       }
                     }
                   }
