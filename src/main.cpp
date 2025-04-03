@@ -124,7 +124,7 @@ int main() {
               check_car_s += (double)prev_size * 0.02 * check_speed;
               // If the check_car is within 30 meters in front, reduce ref_vel so that we don't hit it
               if (check_car_s > car_s && (check_car_s - car_s) < 30){
-                //ref_vel = 29.5;
+                // We still set the too_close flag to true to ensure that the ego vehicle decelerates regardless, since we want to slow down if changing lanes or if we stay in the current lane to avoid collision
                 too_close = true;
 
                 // If we are in the left or right lane, try to switch to the centre lane
@@ -150,16 +150,13 @@ int main() {
                       new_lane_check_car_s += (double)prev_size * 0.02 * new_lane_check_speed;
 
                       // If we encounter a future location of a car in the lane we want to switch to that is less than 40m away from the ego vehicle (within 20m in front of or behind), stay in the current lane
-                      // We still set the too_close flag to true to ensure that the ego vehicle decelerates regardless, since we want to slow down if changing lanes or if we stay in the current lane to avoid collision
                       // We do not need to calculate a new s for the ego vehicle since we are using Frenet coordinates, and so only the d value would change if we switched lanes
+                      // Return the target lane to the current lane, i.e., do not switch lanes
                       if (std::abs(new_lane_check_car_s - car_s) < 20){
                         lane = curr_lane;
                         std::cout << "New car discovered, lane will not be switched." << std::endl;
-                      }
-                      // Otherwise, we switch to the centre lane, and we set the new target lane
-                      else {
-                        lane = target_lane;
-                        std::cout << "Lane will be switched." << std::endl;
+                        // No need to continue checking cars since we know we cannot switch lanes
+                        break;
                       }
                     }
                   }
@@ -188,29 +185,25 @@ int main() {
                       new_lane_check_car_s += (double)prev_size * 0.02 * new_lane_check_speed;
                       // If we encounter a future location of a car in the lane we want to switch to that is less than 40m away from the ego vehicle (within 20m in front of or behind),
                       // stop checking the left lane and try to switch to the right lane instead
-                      // We still set the too_close flag to true to ensure that the ego vehicle decelerates regardless, since we want to slow down if changing lanes or if we stay in the current lane to avoid collision
                       // We do not need to calculate a new s for the ego vehicle since we are using Frenet coordinates, and so only the d value would change if we switched lanes
+                      // Return the target lane to the current lane, i.e., do not switch lanes
                       if (std::abs(new_lane_check_car_s - car_s) < 20){
                         lane = curr_lane;
                         target_lane = 2;
                         left_switch_success = false;
                         std::cout << "Can't switch to left lane, trying right lane instead..." << std::endl;
+                        // No need to continue checking cars since we know we cannot switch lanes
+                        break;
                       }
-                      // Otherwise, we should be able to switch to the left lane, and we set the new target lane
-                      else {
-                        lane = target_lane;
-                        std::cout << "Lane will be switched." << std::endl;
-                      }
-                    }
-
-                    // If we detected a car in the left lane that is preventing us from switching, stop checking the left lane and switch to right instead
-                    if (!left_switch_success) {
-                      break;
                     }
                   }
 
                   // Only proceed with checking the right lane if the left_switch_success failed, that is, we encountered a car blocking us in the left lane
                   if (!left_switch_success) {
+
+                    // Start by assuming no cars in the target lane
+                    lane = target_lane;
+
                     for (int k = 0; k < sensor_fusion.size(); k++) {
                       // Check whether there are any cars in the lane we want to switch to
                       float new_lane_d = sensor_fusion[k][6];
@@ -223,17 +216,14 @@ int main() {
 
                       // Calculate the future location of the car in the lane we want to switch to
                       new_lane_check_car_s += (double)prev_size * 0.02 * new_lane_check_speed;
-                      // If the future location of the car in the lane we want to switch to is greater than 40m away from the ego vehicle (greater than or equal to 20m in front of or behind), switch lanes
-                      // If it is less than 30m away, however, maintain the current lane (we need this extra check in case there are multiple cars in the target lane)
-                      // We still set the too_close flag to true to ensure that the ego vehicle decelerates regardless, since we want to slow down if changing lanes or if we stay in the current lane to avoid collision
+                      // If we encounter a future location of a car in the lane we want to switch to that is less than 40m away from the ego vehicle (within 20m in front of or behind), stay in the current lane
                       // We do not need to calculate a new s for the ego vehicle since we are using Frenet coordinates, and so only the d value would change if we switched lanes
-                      if (std::abs(new_lane_check_car_s - car_s) >= 20){
-                        lane = target_lane;
-                        std::cout << "Lane will be switched." << std::endl;
-                      } else {
+                      // Return the target lane to the current lane, i.e., do not switch lanes
+                      if (std::abs(new_lane_check_car_s - car_s) < 20){
                         lane = curr_lane;
-                        std::cout << "New car discovered, lane will not be switched." << std::endl;
-                      }
+                        std::cout << "Can't switch lanes, decelerating instead..." << std::endl;
+                        // No need to continue checking cars since we know we cannot switch lanes
+                        break;
                       }
                     }
                   }
